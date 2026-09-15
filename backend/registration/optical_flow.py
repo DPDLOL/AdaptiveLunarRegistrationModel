@@ -1,117 +1,142 @@
-"""Tests for Lucas-Kanade optical-flow refinement helpers."""
+"""Lucas-Kanade optical-flow refinement for lunar registration.
+
+Preserves the tested prototype stage:
+spatially balanced FAST points -> homography initialization ->
+pyramidal Lucas-Kanade -> 3 px drift filtering.
+"""
 
 from __future__ import annotations
+
+from typing import Tuple
 
 import cv2
 import numpy as np
 
-from backend.registration.optical_flow import (
-    MAX_DRIFT,
-    run_lk,
-    select_fast_points,
+FAST_THRESHOLD = 10
+MAX_FAST_POINTS = 5000
+
+LK_WIN = (11, 11)
+LK_LEVEL = 2
+LK_CRITERIA = (
+    cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+    10,
+    0.03,
 )
 
+MAX_DRIFT = 3.0
 
-def _textured_image() -> np.ndarray:
-    """Create a deterministic image with sufficient FAST-detectable structure."""
-    rng = np.random.default_rng(12345)
 
-    image = rng.integers(
-        0,
-        256,
-        size=(160, 160),
-        dtype=np.uint8,
+def select_fast_points(img: np.ndarray, budget: int) -> np.ndarray:
+    fast = cv2.FastFeatureDetector_create(
+        threshold=FAST_THRESHOLD,
+        nonmaxSuppression=True,
+    )
+    keypoints = fast.detect(img, None)
+
+    if not keypoints:
+        return np.empty((0, 1, 2), np.float32)
+
+    if len(keypoints) <= budget:
+        return np.float32([kp.pt for kp in keypoints]).reshape(-1, 1, 2)
+
+    h, w = img.shape[:2]
+    grid = 4
+    per_cell = max(1, budget // (grid * grid))
+    buckets = [[] for _ in range(grid * grid)]
+
+    for kp in keypoints:
+        x, y = kp.pt
+        cx = min(grid - 1, max(0, int(x / max(w, 1) * grid)))
+        cy = min(grid - 1, max(0, int(y / max(h, 1) * grid)))
+        buckets[cy * grid + cx].append(kp)
+
+    selected = []
+
+    for bucket in buckets:
+        bucket.sort(key=lambda kp: kp.response, reverse=True)
+        selected.extend(bucket[:per_cell])
+
+    selected_ids = {id(kp) for kp in selected}
+
+    remaining = [
+        kp
+        for kp in keypoints
+        if id(kp) not in selected_ids
+    ]
+
+    remaining.sort(key=lambda kp: kp.response, reverse=True)
+
+    selected.extend(
+        remaining[:max(0, budget - len(selected))]
     )
 
-    cv2.rectangle(
-        image,
-        (20, 20),
-        (140, 140),
-        255,
-        2,
+    selected = selected[:budget]
+
+    return np.float32(
+        [kp.pt for kp in selected]
+    ).reshape(-1, 1, 2)
+
+
+def run_lk(
+    img1: np.ndarray,
+    img2: np.ndarray,
+    H: np.ndarray,
+    budget: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+
+    p0 = select_fast_points(img1, budget)
+
+    if len(p0) < 10:
+        empty = np.empty((0, 1, 2), np.float32)
+        return empty, empty
+
+    guess = cv2.perspectiveTransform(p0, H)
+
+    h, w = img2.shape[:2]
+
+    x = guess[:, 0, 0]
+    y = guess[:, 0, 1]
+
+    inside = (
+        np.isfinite(x)
+        & np.isfinite(y)
+        & (x >= 0)
+        & (x < w)
+        & (y >= 0)
+        & (y < h)
     )
 
-    cv2.line(
-        image,
-        (20, 20),
-        (140, 140),
-        0,
-        2,
+    p0 = p0[inside]
+    guess = guess[inside]
+
+    if len(p0) < 10:
+        empty = np.empty((0, 1, 2), np.float32)
+        return empty, empty
+
+    p1, status, _ = cv2.calcOpticalFlowPyrLK(
+        img1,
+        img2,
+        p0,
+        guess,
+        winSize=LK_WIN,
+        maxLevel=LK_LEVEL,
+        criteria=LK_CRITERIA,
+        flags=cv2.OPTFLOW_USE_INITIAL_FLOW,
     )
 
-    cv2.line(
-        image,
-        (140, 20),
-        (20, 140),
-        0,
-        2,
-    )
-
-    return image
-
-
-def test_fast_point_selection_respects_budget() -> None:
-    image = _textured_image()
-
-    points = select_fast_points(image, 20)
-
-    assert len(points) <= 20
-    assert points.shape[1:] == (1, 2)
-
-
-def test_lk_identity_homography_tracks_same_image() -> None:
-    image = _textured_image()
-
-    points = select_fast_points(image, 100)
-    assert len(points) >= 10
-
-    H = np.eye(3, dtype=np.float64)
-
-    src, dst = run_lk(
-        image,
-        image.copy(),
-        H,
-        budget=100,
-    )
-
-    assert len(src) == len(dst)
-    assert len(src) >= 10
+    if p1 is None or status is None:
+        empty = np.empty((0, 1, 2), np.float32)
+        return empty, empty
 
     drift = np.linalg.norm(
-        dst.reshape(-1, 2) - src.reshape(-1, 2),
-        axis=1,
+        p1 - guess,
+        axis=2,
+    ).ravel()
+
+    valid = (
+        (status.ravel() == 1)
+        & np.isfinite(drift)
+        & (drift <= MAX_DRIFT)
     )
 
-    assert np.all(np.isfinite(drift))
-    assert float(np.max(drift)) <= MAX_DRIFT
-
-
-def test_lk_rejects_predictions_outside_target_image() -> None:
-    image = np.zeros((100, 100), dtype=np.uint8)
-
-    cv2.rectangle(
-        image,
-        (20, 20),
-        (80, 80),
-        255,
-        2,
-    )
-
-    H = np.array(
-        [
-            [1.0, 0.0, 1000.0],
-            [0.0, 1.0, 1000.0],
-            [0.0, 0.0, 1.0],
-        ],
-        dtype=np.float64,
-    )
-
-    src, dst = run_lk(
-        image,
-        image.copy(),
-        H,
-        budget=100,
-    )
-
-    assert len(src) == 0
-    assert len(dst) == 0
+    return p0[valid], p1[valid]
