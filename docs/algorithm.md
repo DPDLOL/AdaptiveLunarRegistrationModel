@@ -31,8 +31,8 @@ The pipeline is **adaptive** — it does not send every pair through the most ex
   ┌──────────────────────────────────┐
   │   Two Structural Representations │
   │                                  │
-  │   ├── CLAHE → Scharr            │
-  │   └── CLAHE → Unsharp → Scharr  │
+  │   ├── CLAHE → Scharr             │
+  │   └── CLAHE → Unsharp → Scharr   │
   └──────────────┬───────────────────┘
                  ▼
   ORB Feature Generation
