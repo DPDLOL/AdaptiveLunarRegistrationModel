@@ -47,35 +47,35 @@ The prototype combines **lightweight feature matching**, **robust geometric esti
 
 ```
                         ┌─────────────────────┐
-                        │   Two Lunar Images   │
+                        │   Two Lunar Images  │
                         └──────────┬──────────┘
                                    ▼
                       ┌────────────────────────┐
-                      │ Grayscale / 8-bit Norm  │
+                      │ Grayscale / 8-bit Norm │
                       └────────────┬───────────┘
                                    ▼
                ┌───────────────────────────────────┐
-               │     Structural Preprocessing       │
-               │  ┌──────────────┬────────────────┐ │
-               │  │ CLAHE+Scharr │ CLAHE+Unsharp  │ │
-               │  │              │   +Scharr      │ │
-               │  └──────────────┴────────────────┘ │
+               │     Structural Preprocessing      │
+               │  ┌──────────────┬────────────────┐│
+               │  │ CLAHE+Scharr │ CLAHE+Unsharp  ││
+               │  │              │   +Scharr      ││
+               │  └──────────────┴────────────────┘│
                └───────────────┬───────────────────┘
                                ▼
                   ┌──────────────────────────┐
-                  │ ORB Correspondence Gen.   │
+                  │ ORB Correspondence Gen.  │
                   └────────────┬─────────────┘
                                ▼
                   ┌──────────────────────────┐
-                  │  Correspondence Fusion    │
+                  │  Correspondence Fusion   │
                   └────────────┬─────────────┘
                                ▼
                   ┌──────────────────────────┐
-                  │  Coarse MAGSAC Homography │
+                  │  Coarse MAGSAC Homography│
                   └────────────┬─────────────┘
                                ▼
                   ┌──────────────────────────┐
-                  │   Seed-Quality Analysis   │
+                  │   Seed-Quality Analysis  │
                   └──────┬──────────────┬────┘
                          │              │
                     catastrophic    usable / weak
@@ -87,24 +87,24 @@ The prototype combines **lightweight feature matching**, **robust geometric esti
                                   yes│   │no (recoverable)
                                      │   ▼
                                      │  ┌────────────────┐
-                                     │  │ AKAZE Recovery  │
+                                     │  │ AKAZE Recovery │
                                      │  └───────┬────────┘
                                      │          │
                                      ▼          ▼
                             ┌───────────────────────────┐
-                            │ H-seeded LK Optical Flow   │
+                            │ H-seeded LK Optical Flow  │
                             └─────────────┬─────────────┘
                                           ▼
                             ┌───────────────────────────┐
-                            │     Drift Filtering        │
+                            │     Drift Filtering       │
                             └─────────────┬─────────────┘
                                           ▼
                             ┌───────────────────────────┐
-                            │      Final MAGSAC          │
+                            │      Final MAGSAC         │
                             └─────────────┬─────────────┘
                                           ▼
-                            ┌───────────────────────────┐
-                            │ Spatial + Geometric Valid.  │
+                            ┌────────────────────────────┐
+                            │ Spatial + Geometric Valid. │
                             └──────┬────────────────┬────┘
                                    │                │
                               ╔════╧════╗     ╔═════╧═════╗
@@ -303,7 +303,7 @@ The system does **not** run every image pair through the most expensive path:
 │  🟡 Weak seed      → AKAZE / Rotation recovery → continue   │
 │                      (moderate cost, only when justified)    │
 │                                                              │
-│  🔴 Pathological   → Reject early                            │
+│  🔴 Pathological   → Reject early                           │
 │                      (no wasted computation)                 │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
