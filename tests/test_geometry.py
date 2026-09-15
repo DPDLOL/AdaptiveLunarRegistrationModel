@@ -64,10 +64,10 @@ def test_identity_reprojection_has_zero_error() -> None:
 
     dst = src.copy()
 
-    rms, errors = reproj_stats(H, src, dst)
+    rms, median_error = reproj_stats(H, src, dst)
 
     assert abs(rms) < 1e-6
-    assert errors.shape == (3,)
+    assert abs(median_error) < 1e-6
 
 
 def test_simple_translation_reprojection() -> None:
@@ -90,7 +90,7 @@ def test_simple_translation_reprojection() -> None:
 
     dst = src + np.float32([10, 5])
 
-    rms, errors = reproj_stats(H, src, dst)
+    rms, median_error = reproj_stats(H, src, dst)
 
     assert abs(rms) < 1e-6
-    assert np.all(errors < 1e-6)
+    assert abs(median_error) < 1e-6
