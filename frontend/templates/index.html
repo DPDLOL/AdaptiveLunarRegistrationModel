@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        SIH26166 — Adaptive Hybrid Lunar Image Registration
+    </title>
+
+    <meta
+        name="description"
+        content="Upload two lunar images to determine whether they depict the same region and register their corresponding geometry."
+    >
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+<!-- ================================================================
+     TOP BAR
+     ================================================================ -->
+
+<nav class="topbar" aria-label="Site identity">
+    <div class="topbar-inner">
+
+        <div class="topbar-brand">
+            <svg class="topbar-logo" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                <circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+                <circle cx="14" cy="14" r="9" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M14 5 C18 9, 18 19, 14 23" stroke="currentColor" stroke-width="1.2" opacity="0.5"/>
+                <path d="M14 5 C10 9, 10 19, 14 23" stroke="currentColor" stroke-width="1.2" opacity="0.3"/>
+                <line x1="5" y1="14" x2="23" y2="14" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+            </svg>
+            <span class="topbar-title">Lunar Registration</span>
+        </div>
+
+        <span class="topbar-tag">SIH26166 · Singularity6</span>
+
+    </div>
+</nav>
+
+
+<div class="container">
+
+    <!-- ============================================================
+         HEADER
+         ============================================================ -->
+
+    <header>
+        <h1>Adaptive Hybrid Lunar<br>Image Registration</h1>
+
+        <p class="subtitle">
+            Upload two lunar surface images to determine whether they depict
+            the same region. The system estimates the geometric transformation
+            between them and reports whether the registration is trustworthy.
+        </p>
+    </header>
+
+
+    <!-- ============================================================
+         IMAGE UPLOAD
+         ============================================================ -->
+
+    <section class="card upload-card">
+
+        <div class="section-label">Input</div>
+
+        <form id="registrationForm">
+
+            <div class="upload-grid">
+
+                <div class="dropzone" id="dropzoneA">
+                    <div class="dropzone-icon" aria-hidden="true">
+                        <svg viewBox="0 0 40 40" fill="none">
+                            <rect x="4" y="8" width="32" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M4 26l9-9 6 6 5-5 12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                            <circle cx="14" cy="16" r="3" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+                        </svg>
+                    </div>
+
+                    <label for="imageA" class="dropzone-label">
+                        Image A
+                    </label>
+
+                    <p class="dropzone-hint" id="hintA">
+                        Click to select or drag a file
+                    </p>
+
+                    <img id="previewA" class="dropzone-preview" alt="Preview of Image A" hidden>
+
+                    <input
+                        id="imageA"
+                        name="image_a"
+                        type="file"
+                        accept="image/*"
+                        required
+                        aria-describedby="hintA"
+                    >
+                </div>
+
+
+                <div class="dropzone" id="dropzoneB">
+                    <div class="dropzone-icon" aria-hidden="true">
+                        <svg viewBox="0 0 40 40" fill="none">
+                            <rect x="4" y="8" width="32" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M4 26l9-9 6 6 5-5 12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                            <circle cx="14" cy="16" r="3" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+                        </svg>
+                    </div>
+
+                    <label for="imageB" class="dropzone-label">
+                        Image B
+                    </label>
+
+                    <p class="dropzone-hint" id="hintB">
+                        Click to select or drag a file
+                    </p>
+
+                    <img id="previewB" class="dropzone-preview" alt="Preview of Image B" hidden>
+
+                    <input
+                        id="imageB"
+                        name="image_b"
+                        type="file"
+                        accept="image/*"
+                        required
+                        aria-describedby="hintB"
+                    >
+                </div>
+
+            </div>
+
+
+            <div class="actions">
+
+                <button
+                    id="runButton"
+                    type="submit"
+                    aria-label="Run registration on the selected images"
+                >
+                    <svg class="btn-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <polygon points="6,4 16,10 6,16" fill="currentColor"/>
+                    </svg>
+                    Run Registration
+                </button>
+
+                <span
+                    id="status"
+                    class="status"
+                    role="status"
+                    aria-live="polite"
+                ></span>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- ============================================================
+         REGISTRATION RESULTS
+         ============================================================ -->
+
+    <section
+        id="resultsCard"
+        class="card results-card"
+        hidden
+    >
+
+        <div class="section-label">Results</div>
+
+        <div class="result-head">
+
+            <div>
+                <h2
+                    id="resultTitle"
+                >
+                    Registration Result
+                </h2>
+
+                <div
+                    id="imageNames"
+                    class="result-filenames"
+                ></div>
+            </div>
+
+
+            <div
+                id="acceptedBadge"
+                class="badge"
+            ></div>
+
+        </div>
+
+
+        <div id="tableContainer">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th scope="col">Metric</th>
+                        <th scope="col">Value</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="resultsBody"></tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ============================================================
+         INLIER VISUALIZATION
+         ============================================================ -->
+
+    <section
+        id="visualizationCard"
+        class="card visualization-card"
+        hidden
+    >
+
+        <div class="section-label">Visualization</div>
+
+        <h2 class="viz-title">
+            Inlier Correspondence Map
+        </h2>
+
+        <p class="viz-caption">
+            Lines connect matched inlier keypoints between Image A (left) and Image B (right).
+        </p>
+
+        <div class="viz-frame">
+            <img
+                id="inlierImage"
+                alt="Inlier correspondence visualization showing matched keypoints between the two lunar images"
+            >
+        </div>
+
+    </section>
+
+
+    <!-- ============================================================
+         FOOTER
+         ============================================================ -->
+
+    <footer class="page-footer">
+        <span>SIH26166 · Adaptive Hybrid Lunar Image Registration</span>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <span>Team Singularity6</span>
+    </footer>
+
+</div>
+
+
+<!-- ================================================================
+     FRONTEND JAVASCRIPT
+     ================================================================ -->
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+
+</body>
+</html>

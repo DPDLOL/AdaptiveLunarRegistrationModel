@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+lunar_cv4/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Runtime uploads and generated outputs
+uploads/
+outputs/
+runs/
+tmp/
+temp/
+
+# Generated inlier visualizations
+inliers_*.png
+
+# Local benchmark outputs
+benchmarks/results/*
+benchmarks/plots/*
+
+# Logs
+*.log
+
+# Local data / large imagery
+data/
+datasets/
+*.img
+*.IMG
+*.tif
+*.tiff
+*.jp2
