@@ -12,12 +12,46 @@ from backend.registration.optical_flow import (
 )
 
 
-def test_fast_point_selection_respects_budget() -> None:
-    image = np.zeros((160, 160), dtype=np.uint8)
+def _textured_image() -> np.ndarray:
+    """Create a deterministic image with enough FAST-detectable structure."""
+    rng = np.random.default_rng(12345)
 
-    for y in range(20, 140, 20):
-        for x in range(20, 140, 20):
-            cv2.circle(image, (x, y), 4, 255, -1)
+    image = rng.integers(
+        0,
+        256,
+        size=(160, 160),
+        dtype=np.uint8,
+    )
+
+    cv2.rectangle(
+        image,
+        (20, 20),
+        (140, 140),
+        255,
+        2,
+    )
+
+    cv2.line(
+        image,
+        (20, 20),
+        (140, 140),
+        0,
+        2,
+    )
+
+    cv2.line(
+        image,
+        (140, 20),
+        (20, 140),
+        0,
+        2,
+    )
+
+    return image
+
+
+def test_fast_point_selection_respects_budget() -> None:
+    image = _textured_image()
 
     points = select_fast_points(image, 20)
 
@@ -26,11 +60,7 @@ def test_fast_point_selection_respects_budget() -> None:
 
 
 def test_lk_identity_homography_tracks_same_image() -> None:
-    image = np.zeros((160, 160), dtype=np.uint8)
-
-    for y in range(20, 140, 20):
-        for x in range(20, 140, 20):
-            cv2.circle(image, (x, y), 4, 255, -1)
+    image = _textured_image()
 
     H = np.eye(3, dtype=np.float64)
 
